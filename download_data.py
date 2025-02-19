@@ -62,7 +62,7 @@ def check_download(row):
         # not all sites will support HEAD
         response = requests.head(row['url'], stream=False, timeout=5, allow_redirects=True, headers=headers)
         row['status'] = response.status_code
-        row['headers'] = dict(response.headers)
+        # row['headers'] = dict(response.headers)
     except:
         # log errors later, set error as 408 timeout
         row['status'] = 408
@@ -104,6 +104,7 @@ def download_image(row):
             row['status'] = 408
             return row
         row['file'] = fname
+        
     return row
 
 def open_tsv(fname, folder):
@@ -120,6 +121,11 @@ def df_from_shelve(chunk_size, func, dataset_name):
         df = pd.concat([results[str(k)][1] for k in keylist], sort=True)
     return df
 
+def merge_caption(caption_file_path, df):
+    caption_file = pd.read_csv(caption_file_path, sep='\t', names=["caption","url"])
+    df = df.merge(caption_file[["caption", "url"]], on="url", how="left")
+    return df
+    
 # number of processes in the pool can be larger than cores
 num_processes = 32
 # chunk_size is how many images per chunk per process - changing this resets progress when restarting.
@@ -129,12 +135,17 @@ data_name = "validation"
 df = open_tsv("Validation_GCC-1.1.0-Validation.tsv", data_name)
 df_multiprocess(df=df, processes=num_processes, chunk_size=images_per_part, func=download_image, dataset_name=data_name)
 df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_name=data_name)
-df.to_csv("downloaded_%s_report.tsv.gz" % data_name, compression='gzip', sep='\t', header=False, index=False)
+print("Mapping Capture.")
+df = merge_caption("Validation_GCC-1.1.0-Validation.tsv", df)
+df.to_csv("downloaded_%s_report.tsv.gz" % data_name, compression='gzip', sep='\t', header=["file","folder","mimetype","size","status","url","caption"], index=False)
+df.to_csv("downloaded_%s_report.tsv" % data_name, sep='\t', index=False)
 print("Saved.")
 
-data_name = "training"
-df = open_tsv("Train_GCC-training.tsv",data_name)
-df_multiprocess(df=df, processes=num_processes, chunk_size=images_per_part, func=download_image, dataset_name=data_name)
-df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_name=data_name)
-df.to_csv("downloaded_%s_report.tsv.gz" % data_name, compression='gzip', sep='\t', header=False, index=False)
-print("Saved.")
+# data_name = "training"
+# df = open_tsv("Train_GCC-training.tsv",data_name)
+# df_multiprocess(df=df, processes=num_processes, chunk_size=images_per_part, func=download_image, dataset_name=data_name)
+# df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_name=data_name)
+# print("Mapping Capture.")
+# df = merge_caption("Train_GCC-training.tsv", df)
+# df.to_csv("downloaded_%s_report.tsv.gz" % data_name, compression='gzip', sep='\t', header=["file","folder","mimetype","size","status","url","caption"], index=False)
+# print("Saved.")
