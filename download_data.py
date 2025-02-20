@@ -127,7 +127,7 @@ def merge_caption(caption_file_path, df):
     return df
     
 # number of processes in the pool can be larger than cores
-num_processes = 32
+num_processes = 10
 # chunk_size is how many images per chunk per process - changing this resets progress when restarting.
 images_per_part = 100
 
@@ -138,14 +138,13 @@ df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_nam
 print("Mapping Capture.")
 df = merge_caption("Validation_GCC-1.1.0-Validation.tsv", df)
 df.to_csv("downloaded_%s_report.tsv.gz" % data_name, compression='gzip', sep='\t', header=["file","folder","mimetype","size","status","url","caption"], index=False)
-df.to_csv("downloaded_%s_report.tsv" % data_name, sep='\t', index=False)
 print("Saved.")
 
-# data_name = "training"
-# df = open_tsv("Train_GCC-training.tsv",data_name)
-# df_multiprocess(df=df, processes=num_processes, chunk_size=images_per_part, func=download_image, dataset_name=data_name)
-# df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_name=data_name)
-# print("Mapping Capture.")
-# df = merge_caption("Train_GCC-training.tsv", df)
-# df.to_csv("downloaded_%s_report.tsv.gz" % data_name, compression='gzip', sep='\t', header=["file","folder","mimetype","size","status","url","caption"], index=False)
-# print("Saved.")
+data_name = "training"
+df = open_tsv("Train_GCC-training.tsv",data_name)
+df_multiprocess(df=df, processes=num_processes, chunk_size=images_per_part, func=download_image, dataset_name=data_name)
+df = df_from_shelve(chunk_size=images_per_part, func=download_image, dataset_name=data_name)
+print("Mapping Capture.")
+df = merge_caption("Train_GCC-training.tsv", df)
+df.to_csv("downloaded_%s_report.tsv.gz" % data_name, compression='gzip', sep='\t', header=["file","folder","mimetype","size","status","url","caption"], index=False)
+print("Saved.")
